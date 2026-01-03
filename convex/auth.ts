@@ -1,5 +1,5 @@
-import { action } from './_generated/server'
 import { v } from 'convex/values'
+import { action } from './_generated/server'
 
 // Verify password against the environment variable
 export const verifyPassword = action({

@@ -18,6 +18,9 @@ export const addEntry = mutation({
   args: {
     score: v.number(),
     notes: v.optional(v.string()),
+    potentialCauses: v.optional(v.array(v.string())),
+    locations: v.optional(v.array(v.string())),
+    timeOfDay: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.score < 0 || args.score > 5) {
@@ -28,6 +31,9 @@ export const addEntry = mutation({
       score: args.score,
       notes: args.notes || '',
       createdAt: Date.now(),
+      potentialCauses: args.potentialCauses || [],
+      locations: args.locations || [],
+      timeOfDay: args.timeOfDay || undefined,
     })
 
     return id
@@ -70,15 +76,21 @@ export const updateEntry = mutation({
     id: v.id('headacheEntries'),
     score: v.number(),
     notes: v.optional(v.string()),
+    potentialCauses: v.optional(v.array(v.string())),
+    locations: v.optional(v.array(v.string())),
+    timeOfDay: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (args.score < 0 || args.score > 5) {
       throw new Error('Score must be between 0 and 5')
     }
 
-    await ctx.db.patch(args.id, {
+    await ctx.db.patch('headacheEntries', args.id, {
       score: args.score,
       notes: args.notes || '',
+      potentialCauses: args.potentialCauses || [],
+      locations: args.locations || [],
+      timeOfDay: args.timeOfDay || undefined,
     })
   },
 })
@@ -89,6 +101,6 @@ export const deleteEntry = mutation({
     id: v.id('headacheEntries'),
   },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.id)
+    await ctx.db.delete('headacheEntries', args.id)
   },
 })

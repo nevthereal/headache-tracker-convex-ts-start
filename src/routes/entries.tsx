@@ -1,10 +1,36 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
+
 import { api } from '../../convex/_generated/api'
+
+const POTENTIAL_CAUSES = [
+  'Caffeine',
+  'Alcohol',
+  'Sleep deprivation',
+  'Dehydration',
+  'Stress',
+  'Screen time',
+  'Weather change',
+  'Hunger',
+  'Bright light',
+  'Hormonal',
+]
+
+const HEADACHE_LOCATIONS = [
+  'Left temple',
+  'Right temple',
+  'Back of head',
+  'Front of head',
+  'Left side',
+  'Right side',
+  'Top of head',
+  'Whole head',
+]
+
+const TIME_OF_DAY = ['Morning', 'Noon', 'Afternoon', 'Evening']
 
 export const Route = createFileRoute('/entries')({
   component: EntriesPage,
@@ -14,6 +40,13 @@ function EntriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editScore, setEditScore] = useState(2.5)
   const [editNotes, setEditNotes] = useState('')
+  const [editPotentialCauses, setEditPotentialCauses] = useState<Array<string>>(
+    [],
+  )
+  const [editLocations, setEditLocations] = useState<Array<string>>([])
+  const [editTimeOfDay, setEditTimeOfDay] = useState<string | undefined>(
+    undefined,
+  )
   const [saving, setSaving] = useState(false)
 
   const { data: entries } = useSuspenseQuery(
@@ -22,16 +55,29 @@ function EntriesPage() {
   const updateEntry = useMutation(api.myFunctions.updateEntry)
   const deleteEntry = useMutation(api.myFunctions.deleteEntry)
 
-  const handleEdit = (id: string, score: number, notes: string) => {
+  const handleEdit = (
+    id: string,
+    score: number,
+    notes: string,
+    causes: Array<string> = [],
+    locs: Array<string> = [],
+    time: string | undefined = undefined,
+  ) => {
     setEditingId(id)
     setEditScore(score)
     setEditNotes(notes)
+    setEditPotentialCauses(causes)
+    setEditLocations(locs)
+    setEditTimeOfDay(time)
   }
 
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditScore(2.5)
     setEditNotes('')
+    setEditPotentialCauses([])
+    setEditLocations([])
+    setEditTimeOfDay(undefined)
   }
 
   const handleSaveEdit = async (id: string) => {
@@ -41,6 +87,9 @@ function EntriesPage() {
         id: id as any,
         score: editScore,
         notes: editNotes.trim() || undefined,
+        potentialCauses: editPotentialCauses,
+        locations: editLocations,
+        timeOfDay: editTimeOfDay,
       })
       setEditingId(null)
     } catch (err) {
@@ -187,6 +236,108 @@ function EntriesPage() {
                     </div>
 
                     <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">
+                        Potential Causes{' '}
+                        <span className="text-gray-500 font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {POTENTIAL_CAUSES.map((cause) => (
+                          <label
+                            key={cause}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editPotentialCauses.includes(cause)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditPotentialCauses([
+                                    ...editPotentialCauses,
+                                    cause,
+                                  ])
+                                } else {
+                                  setEditPotentialCauses(
+                                    editPotentialCauses.filter(
+                                      (c) => c !== cause,
+                                    ),
+                                  )
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {cause}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-3">
+                        Headache Location{' '}
+                        <span className="text-gray-500 font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {HEADACHE_LOCATIONS.map((location) => (
+                          <label
+                            key={location}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editLocations.includes(location)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setEditLocations([...editLocations, location])
+                                } else {
+                                  setEditLocations(
+                                    editLocations.filter((l) => l !== location),
+                                  )
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {location}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="edit-timeOfDay"
+                        className="block text-sm font-semibold text-gray-700 mb-2"
+                      >
+                        Time of Day{' '}
+                        <span className="text-gray-500 font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <select
+                        id="edit-timeOfDay"
+                        value={editTimeOfDay || ''}
+                        onChange={(e) =>
+                          setEditTimeOfDay(e.target.value || undefined)
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition text-gray-900"
+                      >
+                        <option value="">Select a time of day</option>
+                        {TIME_OF_DAY.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
                       <label
                         htmlFor="edit-notes"
                         className="block text-sm font-semibold text-gray-700 mb-2"
@@ -260,7 +411,14 @@ function EntriesPage() {
                     <div className="flex gap-3 pt-2">
                       <button
                         onClick={() =>
-                          handleEdit(entry._id, entry.score, entry.notes || '')
+                          handleEdit(
+                            entry._id,
+                            entry.score,
+                            entry.notes || '',
+                            entry.potentialCauses || [],
+                            entry.locations || [],
+                            entry.timeOfDay,
+                          )
                         }
                         className="flex-1 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-lg transition"
                       >

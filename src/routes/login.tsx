@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction } from 'convex/react'
+
 import { api } from '../../convex/_generated/api'
 import { setSession } from '~/lib/auth'
 

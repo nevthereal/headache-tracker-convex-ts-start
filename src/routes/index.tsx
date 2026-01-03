@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from '@tanstack/react-router'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { useMutation } from 'convex/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
+
 import { api } from '../../convex/_generated/api'
-import { getSession, clearSession } from '~/lib/auth'
+import { clearSession, getSession } from '~/lib/auth'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -53,10 +53,39 @@ function Home() {
   return <TrackerDashboard />
 }
 
+const POTENTIAL_CAUSES = [
+  'Caffeine',
+  'Alcohol',
+  'Sleep deprivation',
+  'Dehydration',
+  'Stress',
+  'Screen time',
+  'Weather change',
+  'Hunger',
+  'Bright light',
+  'Hormonal',
+]
+
+const HEADACHE_LOCATIONS = [
+  'Left temple',
+  'Right temple',
+  'Back of head',
+  'Front of head',
+  'Left side',
+  'Right side',
+  'Top of head',
+  'Whole head',
+]
+
+const TIME_OF_DAY = ['Morning', 'Noon', 'Afternoon', 'Evening']
+
 function TrackerDashboard() {
   const navigate = useNavigate()
   const [score, setScore] = useState(2.5)
   const [notes, setNotes] = useState('')
+  const [potentialCauses, setPotentialCauses] = useState<Array<string>>([])
+  const [locations, setLocations] = useState<Array<string>>([])
+  const [timeOfDay, setTimeOfDay] = useState<string | undefined>(undefined)
   const [submitting, setSubmitting] = useState(false)
 
   const { data: entries } = useSuspenseQuery(
@@ -73,9 +102,18 @@ function TrackerDashboard() {
 
     setSubmitting(true)
     try {
-      await addEntry({ score, notes: notes.trim() || undefined })
+      await addEntry({
+        score,
+        notes: notes.trim() || undefined,
+        potentialCauses,
+        locations,
+        timeOfDay,
+      })
       setScore(2.5)
       setNotes('')
+      setPotentialCauses([])
+      setLocations([])
+      setTimeOfDay(undefined)
     } catch (err) {
       console.error(err)
     } finally {
@@ -88,21 +126,21 @@ function TrackerDashboard() {
     navigate({ to: '/login' })
   }
 
-  const getScoreColor = (score: number) => {
-    if (score < 1) return 'bg-green-100 text-green-800'
-    if (score < 2) return 'bg-blue-100 text-blue-800'
-    if (score < 3) return 'bg-yellow-100 text-yellow-800'
-    if (score < 4) return 'bg-orange-100 text-orange-800'
-    if (score < 5) return 'bg-red-100 text-red-800'
+  const getScoreColor = (scoreValue: number) => {
+    if (scoreValue < 1) return 'bg-green-100 text-green-800'
+    if (scoreValue < 2) return 'bg-blue-100 text-blue-800'
+    if (scoreValue < 3) return 'bg-yellow-100 text-yellow-800'
+    if (scoreValue < 4) return 'bg-orange-100 text-orange-800'
+    if (scoreValue < 5) return 'bg-red-100 text-red-800'
     return 'bg-red-200 text-red-900'
   }
 
-  const getScoreLabel = (score: number) => {
-    if (score < 1) return 'None'
-    if (score < 2) return 'Mild'
-    if (score < 3) return 'Moderate'
-    if (score < 4) return 'Severe'
-    if (score < 5) return 'Very Severe'
+  const getScoreLabel = (scoreValue: number) => {
+    if (scoreValue < 1) return 'None'
+    if (scoreValue < 2) return 'Mild'
+    if (scoreValue < 3) return 'Moderate'
+    if (scoreValue < 4) return 'Severe'
+    if (scoreValue < 5) return 'Very Severe'
     return 'Extreme'
   }
 
@@ -124,6 +162,9 @@ function TrackerDashboard() {
         day: 'numeric',
       }),
       score: entry.score,
+      potentialCauses: entry.potentialCauses || [],
+      locations: entry.locations || [],
+      timeOfDay: entry.timeOfDay || null,
     }))
 
   const avgScore =
@@ -271,6 +312,104 @@ function TrackerDashboard() {
                     </div>
                   </div>
 
+                  {/* Potential Causes */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Potential Causes{' '}
+                      <span className="text-gray-500 font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {POTENTIAL_CAUSES.map((cause) => (
+                        <label
+                          key={cause}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={potentialCauses.includes(cause)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setPotentialCauses([...potentialCauses, cause])
+                              } else {
+                                setPotentialCauses(
+                                  potentialCauses.filter((c) => c !== cause),
+                                )
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700">{cause}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Headache Locations */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Headache Location{' '}
+                      <span className="text-gray-500 font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {HEADACHE_LOCATIONS.map((location) => (
+                        <label
+                          key={location}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={locations.includes(location)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setLocations([...locations, location])
+                              } else {
+                                setLocations(
+                                  locations.filter((l) => l !== location),
+                                )
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {location}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Time of Day */}
+                  <div>
+                    <label
+                      htmlFor="timeOfDay"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                      Time of Day{' '}
+                      <span className="text-gray-500 font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <select
+                      id="timeOfDay"
+                      value={timeOfDay || ''}
+                      onChange={(e) =>
+                        setTimeOfDay(e.target.value || undefined)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition text-gray-900"
+                    >
+                      <option value="">Select a time of day</option>
+                      {TIME_OF_DAY.map((time) => (
+                        <option key={time} value={time}>
+                          {time}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label
                       htmlFor="notes"
@@ -372,13 +511,56 @@ function TrackerDashboard() {
                           border: '1px solid #e5e7eb',
                           borderRadius: '8px',
                           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                          padding: '12px',
                         }}
                         formatter={(value) => {
-                          const score =
+                          const scoreValue =
                             typeof value === 'number'
                               ? value
                               : parseFloat(String(value))
-                          return `${score.toFixed(1)} - ${getScoreLabel(score)}`
+                          return `${scoreValue.toFixed(1)} - ${getScoreLabel(scoreValue)}`
+                        }}
+                        content={({ payload }) => {
+                          if (payload?.length) {
+                            const data = payload[0].payload
+                            return (
+                              <div className="space-y-2 text-sm">
+                                <div className="font-semibold text-gray-900">
+                                  {data.score.toFixed(1)} -{' '}
+                                  {getScoreLabel(data.score)}
+                                </div>
+                                {data.potentialCauses &&
+                                  data.potentialCauses.length > 0 && (
+                                    <div className="text-gray-700">
+                                      <div className="font-medium">Causes:</div>
+                                      <div className="text-xs text-gray-600 ml-2">
+                                        {data.potentialCauses.join(', ')}
+                                      </div>
+                                    </div>
+                                  )}
+                                {data.locations &&
+                                  data.locations.length > 0 && (
+                                    <div className="text-gray-700">
+                                      <div className="font-medium">
+                                        Locations:
+                                      </div>
+                                      <div className="text-xs text-gray-600 ml-2">
+                                        {data.locations.join(', ')}
+                                      </div>
+                                    </div>
+                                  )}
+                                {data.timeOfDay && (
+                                  <div className="text-gray-700">
+                                    <div className="font-medium">Time:</div>
+                                    <div className="text-xs text-gray-600 ml-2">
+                                      {data.timeOfDay}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          }
+                          return null
                         }}
                       />
                       <Legend />
