@@ -3,8 +3,23 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
+import { ArrowLeft, Edit2, Trash2, Check, X } from 'lucide-react'
 
 import { api } from '../../convex/_generated/api'
+import { Button } from '~/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card'
+import { Badge } from '~/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+
+export const Route = createFileRoute('/entries')({
+  component: EntriesPage,
+})
 
 const POTENTIAL_CAUSES = [
   'Caffeine',
@@ -32,9 +47,79 @@ const HEADACHE_LOCATIONS = [
 
 const TIME_OF_DAY = ['Morning', 'Noon', 'Afternoon', 'Evening']
 
-export const Route = createFileRoute('/entries')({
-  component: EntriesPage,
-})
+// Multi-select component
+function MultiSelect({
+  values,
+  onValuesChange,
+  options,
+  placeholder,
+}: {
+  values: string[]
+  onValuesChange: (values: string[]) => void
+  options: string[]
+  placeholder: string
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex flex-wrap gap-2 p-2 min-h-10 rounded-md border border-input bg-background text-left hover:bg-accent/50 transition"
+      >
+        {values.length > 0 ? (
+          <>
+            {values.map((value) => (
+              <Badge key={value} variant="secondary">
+                {value}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onValuesChange(values.filter((v) => v !== value))
+                  }}
+                  className="ml-1 hover:bg-secondary/80 rounded"
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </>
+        ) : (
+          <span className="text-muted-foreground text-sm">{placeholder}</span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-input rounded-md shadow-md z-50">
+            <div className="p-2 max-h-48 overflow-y-auto">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    if (values.includes(option)) {
+                      onValuesChange(values.filter((v) => v !== option))
+                    } else {
+                      onValuesChange([...values, option])
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent rounded transition text-left"
+                >
+                  <div className="w-4 h-4 border border-input rounded flex items-center justify-center">
+                    {values.includes(option) && <Check className="w-3 h-3" />}
+                  </div>
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 function EntriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -109,51 +194,40 @@ function EntriesPage() {
     }
   }
 
-  const getScoreColor = (score: number) => {
-    if (score < 1) return 'bg-green-100 text-green-800'
-    if (score < 2) return 'bg-blue-100 text-blue-800'
-    if (score < 3) return 'bg-yellow-100 text-yellow-800'
-    if (score < 4) return 'bg-orange-100 text-orange-800'
-    if (score < 5) return 'bg-red-100 text-red-800'
-    return 'bg-red-200 text-red-900'
+  const getScoreBadgeVariant = (
+    scoreValue: number,
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    if (scoreValue < 1) return 'secondary'
+    if (scoreValue < 2) return 'outline'
+    if (scoreValue < 3) return 'outline'
+    if (scoreValue < 4) return 'secondary'
+    return 'destructive'
   }
 
-  const getScoreLabel = (score: number) => {
-    if (score < 1) return 'None'
-    if (score < 2) return 'Mild'
-    if (score < 3) return 'Moderate'
-    if (score < 4) return 'Severe'
-    if (score < 5) return 'Very Severe'
+  const getScoreLabel = (scoreValue: number) => {
+    if (scoreValue < 1) return 'None'
+    if (scoreValue < 2) return 'Mild'
+    if (scoreValue < 3) return 'Moderate'
+    if (scoreValue < 4) return 'Severe'
+    if (scoreValue < 5) return 'Very Severe'
     return 'Extreme'
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Link>
           <div>
-            <Link
-              to="/"
-              className="text-purple-600 hover:text-purple-700 font-medium mb-2 inline-flex items-center gap-1"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Back
-            </Link>
-            <h1 className="text-4xl font-bold text-gray-900">Manage Entries</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold">Manage Entries</h1>
+            <p className="text-muted-foreground mt-1">
               Edit or delete your headache entries
             </p>
           </div>
@@ -162,61 +236,50 @@ function EntriesPage() {
         {/* Entries List */}
         <div className="space-y-4">
           {entries.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <svg
-                className="w-16 h-16 text-gray-300 mx-auto mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No entries yet
-              </h3>
-              <p className="text-gray-600">
-                Create your first entry from the tracker
-              </p>
-            </div>
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="bg-secondary p-3 rounded-lg mb-4">
+                  <svg
+                    className="h-8 w-8 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-1">No entries yet</h3>
+                <p className="text-muted-foreground text-sm">
+                  Create your first entry to get started
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             entries.map((entry) => (
-              <div
-                key={entry._id}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition"
-              >
+              <Card key={entry._id}>
                 {editingId === entry._id ? (
                   // Edit Mode
-                  <div className="p-6 space-y-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Edit Entry
-                      </h3>
-                      <time className="text-sm text-gray-500">
-                        {new Date(entry.createdAt).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </time>
-                    </div>
+                  <CardHeader>
+                    <CardTitle>Edit Entry</CardTitle>
+                  </CardHeader>
+                ) : null}
 
+                {editingId === entry._id ? (
+                  <CardContent className="space-y-6">
+                    {/* Intensity */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-semibold text-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-semibold">
                           Intensity
                         </label>
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-semibold ${getScoreColor(editScore)}`}
-                        >
-                          {editScore.toFixed(1)} - {getScoreLabel(editScore)}
-                        </span>
+                        <Badge variant={getScoreBadgeVariant(editScore)}>
+                          {editScore.toFixed(1)}
+                        </Badge>
                       </div>
                       <input
                         type="range"
@@ -227,123 +290,84 @@ function EntriesPage() {
                         onChange={(e) =>
                           setEditScore(parseFloat(e.target.value))
                         }
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                        className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-purple-500"
                       />
-                      <div className="flex justify-between text-xs text-gray-500 mt-2">
-                        <span>None</span>
-                        <span>Extreme</span>
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                        <span>None (0)</span>
+                        <span>Extreme (5)</span>
                       </div>
                     </div>
 
+                    {/* Potential Causes */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3">
-                        Potential Causes{' '}
-                        <span className="text-gray-500 font-normal">
+                      <label className="text-sm font-semibold mb-3 block">
+                        Potential Causes
+                        <span className="text-muted-foreground font-normal text-xs ml-1">
                           (optional)
                         </span>
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {POTENTIAL_CAUSES.map((cause) => (
-                          <label
-                            key={cause}
-                            className="flex items-center space-x-2 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={editPotentialCauses.includes(cause)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEditPotentialCauses([
-                                    ...editPotentialCauses,
-                                    cause,
-                                  ])
-                                } else {
-                                  setEditPotentialCauses(
-                                    editPotentialCauses.filter(
-                                      (c) => c !== cause,
-                                    ),
-                                  )
-                                }
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {cause}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                      <MultiSelect
+                        values={editPotentialCauses}
+                        onValuesChange={setEditPotentialCauses}
+                        options={POTENTIAL_CAUSES}
+                        placeholder="Select causes..."
+                      />
                     </div>
 
+                    {/* Headache Locations */}
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3">
-                        Headache Location{' '}
-                        <span className="text-gray-500 font-normal">
+                      <label className="text-sm font-semibold mb-3 block">
+                        Headache Location
+                        <span className="text-muted-foreground font-normal text-xs ml-1">
                           (optional)
                         </span>
                       </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {HEADACHE_LOCATIONS.map((location) => (
-                          <label
-                            key={location}
-                            className="flex items-center space-x-2 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={editLocations.includes(location)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setEditLocations([...editLocations, location])
-                                } else {
-                                  setEditLocations(
-                                    editLocations.filter((l) => l !== location),
-                                  )
-                                }
-                              }}
-                              className="w-4 h-4 rounded border-gray-300 text-purple-500 focus:ring-purple-500 cursor-pointer"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {location}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
+                      <MultiSelect
+                        values={editLocations}
+                        onValuesChange={setEditLocations}
+                        options={HEADACHE_LOCATIONS}
+                        placeholder="Select locations..."
+                      />
                     </div>
 
+                    {/* Time of Day */}
                     <div>
                       <label
                         htmlFor="edit-timeOfDay"
-                        className="block text-sm font-semibold text-gray-700 mb-2"
+                        className="text-sm font-semibold block mb-2"
                       >
-                        Time of Day{' '}
-                        <span className="text-gray-500 font-normal">
+                        Time of Day
+                        <span className="text-muted-foreground font-normal text-xs ml-1">
                           (optional)
                         </span>
                       </label>
-                      <select
-                        id="edit-timeOfDay"
+                      <Select
                         value={editTimeOfDay || ''}
-                        onChange={(e) =>
-                          setEditTimeOfDay(e.target.value || undefined)
+                        onValueChange={(value) =>
+                          setEditTimeOfDay(value || undefined)
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition text-gray-900"
                       >
-                        <option value="">Select a time of day</option>
-                        {TIME_OF_DAY.map((time) => (
-                          <option key={time} value={time}>
-                            {time}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger id="edit-timeOfDay" className="w-full">
+                          <SelectValue placeholder="Select a time of day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_OF_DAY.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
+                    {/* Notes */}
                     <div>
                       <label
                         htmlFor="edit-notes"
-                        className="block text-sm font-semibold text-gray-700 mb-2"
+                        className="text-sm font-semibold block mb-2"
                       >
-                        Notes{' '}
-                        <span className="text-gray-500 font-normal">
+                        Notes
+                        <span className="text-muted-foreground font-normal text-xs ml-1">
                           (optional)
                         </span>
                       </label>
@@ -353,87 +377,147 @@ function EntriesPage() {
                         onChange={(e) => setEditNotes(e.target.value)}
                         placeholder="How are you feeling? Any triggers or symptoms?"
                         rows={4}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition resize-none"
+                        className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground resize-none placeholder:text-muted-foreground"
                       />
                     </div>
 
-                    <div className="flex gap-3">
-                      <button
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4">
+                      <Button
                         onClick={() => handleSaveEdit(entry._id)}
                         disabled={saving}
-                        className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded-lg transition"
+                        className="flex-1"
                       >
-                        {saving ? 'Saving...' : 'Save'}
-                      </button>
-                      <button
+                        <Check className="h-4 w-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button
                         onClick={handleCancelEdit}
                         disabled={saving}
-                        className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 text-gray-700 font-semibold py-2 rounded-lg transition"
+                        variant="outline"
+                        className="flex-1"
                       >
+                        <X className="h-4 w-4 mr-2" />
                         Cancel
-                      </button>
+                      </Button>
                     </div>
-                  </div>
+                  </CardContent>
                 ) : (
                   // View Mode
-                  <div className="p-6 space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center space-x-3">
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-semibold ${getScoreColor(entry.score)}`}
-                          >
-                            {entry.score.toFixed(1)} -{' '}
-                            {getScoreLabel(entry.score)}
-                          </span>
-                          <time className="text-sm text-gray-500">
-                            {new Date(entry.createdAt).toLocaleDateString(
-                              'en-US',
-                              {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              },
-                            )}
-                          </time>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={getScoreBadgeVariant(entry.score)}>
+                              {entry.score.toFixed(1)}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {getScoreLabel(entry.score)}
+                            </span>
+                            <time className="text-sm text-muted-foreground ml-auto">
+                              {new Date(entry.createdAt).toLocaleDateString(
+                                'en-US',
+                                {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                },
+                              )}
+                            </time>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {entry.notes && (
-                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
-                        {entry.notes}
-                      </p>
-                    )}
+                      {entry.notes && (
+                        <div className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-md whitespace-pre-wrap">
+                          {entry.notes}
+                        </div>
+                      )}
 
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() =>
-                          handleEdit(
-                            entry._id,
-                            entry.score,
-                            entry.notes || '',
-                            entry.potentialCauses || [],
-                            entry.locations || [],
-                            entry.timeOfDay,
-                          )
-                        }
-                        className="flex-1 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded-lg transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(entry._id)}
-                        className="flex-1 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded-lg transition"
-                      >
-                        Delete
-                      </button>
+                      {entry.potentialCauses &&
+                        entry.potentialCauses.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground mb-2">
+                              Causes
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {entry.potentialCauses.map((cause) => (
+                                <Badge
+                                  key={cause}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {cause}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {entry.locations && entry.locations.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">
+                            Locations
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {entry.locations.map((location) => (
+                              <Badge
+                                key={location}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {location}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {entry.timeOfDay && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">
+                            Time
+                          </p>
+                          <p className="text-sm">{entry.timeOfDay}</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          onClick={() =>
+                            handleEdit(
+                              entry._id,
+                              entry.score,
+                              entry.notes || '',
+                              entry.potentialCauses || [],
+                              entry.locations || [],
+                              entry.timeOfDay,
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(entry._id)}
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
                 )}
-              </div>
+              </Card>
             ))
           )}
         </div>

@@ -60,8 +60,13 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  React.useEffect(() => {
+    // Enforce dark mode
+    document.documentElement.classList.add('dark')
+  }, [])
+
   return (
-    <html>
+    <html className="dark">
       <head>
         <HeadContent />
       </head>
